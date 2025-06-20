@@ -12,10 +12,12 @@ Make sure the following tools are installed:
 
 1. **Activate the FEgrow environment**
 
-```bash
+```
 conda activate fegrow
 
 python auto-fegrow.py
+```
+Activate apodock environment
 
 conda activate apodock
 
