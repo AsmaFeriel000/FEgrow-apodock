@@ -6,9 +6,9 @@
 
 Make sure the following tools are installed:
 
-- [Apodock](https://github.com/your-org/apodock)  
-- [FEgrow](https://github.com/your-org/fegrow)  
-- [Gnina](https://github.com/gnina/gnina)
+- [Apodock]([https://github.com/your-org/apodock](https://github.com/ld139/ApoDock_public))  
+- [FEgrow]([https://github.com/your-org/fegrow](https://github.com/cole-group/FEgrow))  
+- [Gnina]([https://github.com/gnina/gnina](https://github.com/gnina/gnina))
 
 1. **Activate the FEgrow environment**
 
