@@ -19,10 +19,11 @@ python auto-fegrow.py
 ```
 Activate apodock environment
 
+```
 conda activate apodock
 
 python scoring-apodock.py
-
+```
 
 
 
