@@ -66,7 +66,7 @@ def main():
         # In[5]:
 
 
-        with open('smiles-released-mers-mol0.txt') as f:
+        with open('smiles-released-mers-mol1-and-mol2.txt') as f:
          
             mols = f.read().splitlines()
 
@@ -217,9 +217,8 @@ def main():
 
         #!grep "ATOM" ../structures/7t79-H.pdb > rec_final.pdb
         #cs.add_protein(rec_5R83_path)
-        cs.add_protein(f"rec_final_{counter}.pdb")
+        cs.add_protein(f"{OUTPUT_DIR}/rec_final_{counter}.pdb")
         print(f"successfully added pdb {counter} to chemspace to evaluate conformers on it")
-
 
         # In[16]:
 
