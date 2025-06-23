@@ -17,7 +17,7 @@ conda activate fegrow
 
 python auto-fegrow.py
 ```
-Activate apodock environment
+2. **Activate apodock environment**
 
 ```
 conda activate apodock
