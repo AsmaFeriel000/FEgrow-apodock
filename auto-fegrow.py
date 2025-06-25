@@ -25,258 +25,167 @@ from fegrow.testing import core_5R83_path, rec_5R83_path, data_5R83_path
 
 from dask.distributed import LocalCluster
 
+
+import os
+import shutil
+
+
 def main():
 
     OUTPUT_DIR = "fegrow_result"
     
      
-    lc = LocalCluster(processes=True, n_workers=None, threads_per_worker=1)
-    
-    counter = 1
-    # In[14]:
 
-    input_folder = "./apodockRec-H"
-    # Find all .pdb files in the input folder
-    pdb_files = glob(os.path.join(input_folder, "*.pdb"))
-
-    for pdb_file in pdb_files:
-    # # Prepare the ligand template
-        print(f" pdb file {counter} read in")
-        # In[2]:
+ 
 
 
-        #!grep "XEY" 7l10.pdb > in.pdb
-        #!obabel -ipdb lig-rebuilt.pdb -O in-H.sdf -p 7
+    lc = LocalCluster(processes=True, n_workers=None, threads_per_worker=1)    
+        
+    counter = 1    
+        
+
+    input_folder = "./apodockRec-H"        
+            
+        # Find all .pdb files in the input folder
+    pdb_files = glob(os.path.join(input_folder, "*.pdb")    )        
+
+    for pdb_file in pdb_files:    
+        # Prepare the ligand template
+        print(f" pdb file {counter} read in")    
+            
+
+        #!grep "XEY" 7l10.pdb > in.pdb    
+        #!obabel -ipdb lig-rebuilt.pdb -O in-H.sdf -p 7   
 
 
-        # In[3]:
+            
 
 
-        #scaffold = Chem.SDMolSupplier(core_5R83_path)[0]
+        #scaffold = Chem.SDMolSupplier(core_5R83_path)[0]    
         scaffold = Chem.SDMolSupplier('coreh.sdf')[0]
 
 
-        # In[4]:
+        with open('smiles-released-mers-mol1-and-mol2.txt') as f:    
+            
+            mols = f.read().splitlines()    
 
+            #pattern = scaffold
 
-        #toview = fegrow.RMol(scaffold)
-        #toview.rep2D(idx=True, size=(500, 500))
+            #for i in range(len(mols)):
+            #    mol = Chem.MolFromSmiles(mols[i])
+            #    if mol.HasSubstructMatch(pattern) == False:
+            #        print(i, mols[i])
 
+            print(f"loading core finished round {counter}")
+            print(f"creating chemspace with dask round {counter}")
 
-        # In[5]:
+            # create the chemical space
+            cs = ChemSpace(dask_cluster=lc)   
 
+            #cs._dask_cluster
 
-        with open('smiles-released-mers-mol1-and-mol2.txt') as f:
-         
-            mols = f.read().splitlines()
+            # we're not growing the scaffold, we're superimposing bigger molecules on it
+            cs.add_scaffold(scaffold)
 
+            smiles = mols[0:]
 
-        # In[6]:
+            # here we add Smiles which should already have been matched
+            # to the scaffold (rdkit Mol.HasSubstructureMatch)
+            #cs.add_smiles(smiles.to_list(), protonate=True)
+            cs.add_smiles(smiles, protonate=True)
+            cs
 
+            # get the protein-ligand complex structure
+            #!wget -nc https://files.rcsb.org/download/3vf6.pdb
 
-        #mols[0]
+            
 
+            # load the complex with the ligand
+            sys = prody.parsePDB(pdb_file)
 
-        # In[7]:
+            # remove any unwanted molecules
+            rec = sys.select('not (nucleic or hetatm or water)')
 
+            # save the processed protein
+            prody.writePDB('rec.pdb', rec)
 
-        #mols = ['C1(OCCC)=CC=CN=C1',
-        #        'CNC(=O)CN1C[C@@]2(C(=O)N(c3cncc4ccccc34)C[C@@H]2CNc2ccncn2)c2cc(Cl)ccc2C1=O',
-        #        'CNC(=O)CN1C[C@@]2(C(=O)N(c3cncc4ccccc34)C[C@@H]2CNc2cnn(C)c2)c2cc(Cl)ccc2C1=O',
-        #        'Cc1cnc(CN2C[C@@]3(C(=O)N(c4cncc5ccccc45)C[C@@H]3C)c3cc(F)ccc3C2=O)cn1',
-        #        'CNC(=O)CN1C[C@@]2(C(=O)N(c3cncc4ccccc34)C[C@@H]2COC(C)C)c2cc(Cl)ccc2C1=O',
-        #        'C[C@H]1CN(c2cncc3ccccc23)C(=O)[C@@]12CN(Cc1nccn1C)C(=O)c1ccc(F)cc12'
-        #       ]
+            # fix the receptor file (missing residues, protonation, etc)
+            #f os.path.exists(OUTPUT_DIR):
+                #   shutil.rmtree(OUTPUT_DIR)  # Optional: remove old results
+            
+            os.makedirs(OUTPUT_DIR, exist_ok=True) 
+            fegrow.fix_receptor("rec.pdb", f"{OUTPUT_DIR}/rec_final_{counter}.pdb")
+            print(f"pdb file into rec_final {counter}")
+            # load back into prody
+            #rec_final = prody.parsePDB("rec_final.pdb")
+            #rec_final = prody.parsePDB("out.pdb")
 
+            # fix the receptor file (missing residues, protonation, etc)
+            ##fegrow.fix_receptor("7t79-H-prep.pdb", "rec_final.pdb")
 
-        # In[8]:
+            # load back into prody
+            ##rec_final = prody.parsePDB("rec_final.pdb")
 
+            #!grep "ATOM" ../structures/7t79-H.pdb > rec_final.pdb
+            #cs.add_protein(rec_5R83_path)
+            cs.add_protein(f"{OUTPUT_DIR}/rec_final_{counter}.pdb")
+            print(f"successfully added pdb {counter} to chemspace to evaluate conformers on it")
 
-        #Chem.MolFromSmiles(mols[0])
+            cs.evaluate(num_conf=500, gnina_gpu=False, penalty=0.0, al_ignore_penalty=False)
 
 
-        # In[ ]:
+            cs.to_sdf(f"cs_optimised_molecules_in_rec_{counter}.sdf")
 
 
+            for i in range (len(cs)):
+                try:
+                    cs[i].to_file("best_conformers_in_rec_{0}_{1}.pdb".format(counter,i)) # afk
+                except AttributeError:
+                    print("No conformer for molecule", i)
 
+                for i in range(len(cs)):
+                    pdb_filename = "best_conformers_in_rec_{0}_{1}.pdb".format(counter, i)
+                    sdf_filename = os.path.join(OUTPUT_DIR, "rec_{0}_mol{1}.sdf".format(counter, i))
+                    pdb_first_model = "tmp_first_model_{0}_{1}.pdb".format(counter, i)
 
+                    try:
+                        cs[i].to_file(pdb_filename)
 
-        # In[9]:
+                        # Extract first MODEL block (first conformer)
+                        with open(pdb_filename, 'r') as infile:
+                            lines = infile.readlines()
 
+                        inside_model = False
+                        first_model_lines = []
+                        for line in lines:
+                            if line.startswith("MODEL"):
+                                if inside_model:
+                                    break  # already captured one MODEL
+                                inside_model = True
+                            if inside_model:
+                                first_model_lines.append(line)
+                            if line.startswith("ENDMDL") and inside_model:
+                                break  # stop after first MODEL
 
-        #pattern = scaffold
+                        # If no MODEL blocks are found, fallback to entire file (may be single conformer)
+                        if not first_model_lines:
+                            first_model_lines = lines
 
-        #for i in range(len(mols)):
-        #    mol = Chem.MolFromSmiles(mols[i])
-        #    if mol.HasSubstructMatch(pattern) == False:
-        #        print(i, mols[i])
+                        # Write the first conformer to a new temporary file
+                        with open(pdb_first_model, 'w') as outfile:
+                            outfile.writelines(first_model_lines)
 
+                        # Convert to .sdf using obabel
+                        os.system(f"obabel -ipdb {pdb_first_model} -O {sdf_filename}")
 
-        # In[ ]:
+                        os.remove(pdb_first_model)
 
-
-
-
-
-        # As we are using already prepared Smiles that have the scaffold as a substructure, it is not needed to set any growing vector. 
-
-        # In[ ]:
-
-
-
-
-
-        # In[10]:
-
-
-       
-
-
-        # In[ ]:
-
-
-
-        print(f"loading core finished round {counter}")
-        print(f"creating chemspace with dask round {counter}")
-
-        # In[11]:
-
-
-        # create the chemical space
-        cs = ChemSpace(dask_cluster=lc)   
-
-
-
-        # In[12]:
-
-
-        #cs._dask_cluster
-
-
-        # In[ ]:
-
-
-
-
-
-        # In[13]:
-
-
-        # we're not growing the scaffold, we're superimposing bigger molecules on it
-        cs.add_scaffold(scaffold)
-
-
-        # In[15]:
-
-
-        # load 50k Smiles
-        #smiles = pd.read_csv('csv/arthor-hits-2024Mar26-0918.csv',
-        #                     names=["Smiles", "??", "db"],
-        #                     index_col=0).Smiles
-
-        #smiles = pd.read_csv('smiles.csv').Smiles.to_list()
-
-
-        # take all 20000
-        #smiles = smiles.apply(lambda r: r.split()[0])
-        smiles = mols[0:]
-
-        # here we add Smiles which should already have been matched
-        # to the scaffold (rdkit Mol.HasSubstructureMatch)
-        #cs.add_smiles(smiles.to_list(), protonate=True)
-        cs.add_smiles(smiles, protonate=True)
-        cs
-
-        # get the protein-ligand complex structure
-        #!wget -nc https://files.rcsb.org/download/3vf6.pdb
-
-        
-
-        # load the complex with the ligand
-        sys = prody.parsePDB(pdb_file)
-
-        # remove any unwanted molecules
-        rec = sys.select('not (nucleic or hetatm or water)')
-
-        # save the processed protein
-        prody.writePDB('rec.pdb', rec)
-
-        # fix the receptor file (missing residues, protonation, etc)
-        os.mkdir(OUTPUT_DIR)
-        fegrow.fix_receptor("rec.pdb", f"{OUTPUT_DIR}/rec_final_{counter}.pdb")
-        print(f"pdb file into rec_final {counter}")
-        # load back into prody
-        #rec_final = prody.parsePDB("rec_final.pdb")
-        #rec_final = prody.parsePDB("out.pdb")
-
-        # fix the receptor file (missing residues, protonation, etc)
-        ##fegrow.fix_receptor("7t79-H-prep.pdb", "rec_final.pdb")
-
-        # load back into prody
-        ##rec_final = prody.parsePDB("rec_final.pdb")
-
-        #!grep "ATOM" ../structures/7t79-H.pdb > rec_final.pdb
-        #cs.add_protein(rec_5R83_path)
-        cs.add_protein(f"{OUTPUT_DIR}/rec_final_{counter}.pdb")
-        print(f"successfully added pdb {counter} to chemspace to evaluate conformers on it")
-
-        # In[16]:
-
-
-        cs.evaluate(num_conf=500, gnina_gpu=False, penalty=0.0, al_ignore_penalty=False)
-
-
-        # In[ ]:
-
-
-
-
-
-        # In[17]:
-
-
-        #cs.df afk
-
-
-        # In[18]:
-
-        
-        cs.to_sdf(f"{OUTPUT_DIR}/cs_optimised_molecules_in_rec_{counter}.sdf")
-
-
-        # In[ ]:
-
-
-
-
-
-        # In[19]:
-
-
-        for i in range (len(cs)):
-            try:
-                cs[i].to_file("best_conformers_in_rec_{0}_{1}.pdb".format(counter,i)) # afk
-            except AttributeError:
-                print("No conformer for molecule", i)
-
-
-        # In[ ]:
-
-
-
-
-
-        # In[20]:
-
+                    except AttributeError:
+                        print("No conformer for molecule", i)
 
         cs.df.to_csv('MERS-out.csv', index=True)
-      
+    
         counter += 1
-     
-
-        # cs.clear()
-        # afk need to reset/clear cs for next iteration
-
 
 if __name__ == '__main__':
     import multiprocessing

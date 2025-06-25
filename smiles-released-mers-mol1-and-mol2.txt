@@ -1,0 +1,2 @@
+COc1ccc(N(Cc2cccc(Cl)c2)C(=O)Cc2cncc3ccccc23)cc1
+CNC(=O)CN1C[C@@]2(C(=O)N(c3cncc4ccccc34)C[C@@H]2[NH3+])c2cc(Cl)ccc2C1=O
