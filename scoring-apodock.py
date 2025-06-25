@@ -7,7 +7,7 @@ from Aposcore.inference_dataset import get_mdn_score
 from Aposcore.Aposcore import Aposcore
 
 import pymol2
-
+import re
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -72,8 +72,9 @@ def strip_hydrogens_from_receptors(receptor_files):
             pymol.cmd.save(noH_path, "rec")
 
 def get_scores():
+
     args = parse_args()
-    # Initialize model
+
     model_mdn = Aposcore(
         35,
         hidden_dim=256,
@@ -84,44 +85,73 @@ def get_scores():
         num_layers=6,
         interact_type="product",
     )
-    ligs = sorted(collect_files(args.input_folder, args.ligand_pattern))
-    raw_receptors = sorted(collect_files(args.input_folder, args.receptor_pattern))
-    
-    # Strip hydrogens before scoring
-    strip_hydrogens_from_receptors(raw_receptors)
-    # Use the -noH versions for scoring
-    receptors = [r.replace(".pdb", "-noH.pdb") for r in raw_receptors if r.endswith(".pdb")]
 
+    receptor_files = sorted(collect_files(args.input_folder, args.receptor_pattern))
+    ligand_files = sorted(collect_files(args.input_folder, "*.sdf"))
 
-    if not ligs or not receptors:
-        print("No ligand or receptor files found. Exiting.")
-        return
-    scores = get_mdn_score(
-        ligs,
-        receptors,
-        model_mdn,
-        args.ckpt,
-        args.device,
-        dis_threshold=args.dis_threshold,
-    )
-    # Convert scores to a dictionary of dict[(Path,Path) float], (where the keys are ligand and receptor file paths)
-    scores = {
-        (lig, rec): score for (lig, rec), score in zip(zip(ligs, receptors), scores)
-    }
-    # Sort by score - highest first
-    scores = {
-        (lig, rec): score
-        for (lig, rec), score in sorted(
-            scores.items(), key=lambda item: item[1], reverse=True
-        )
-    }
-    # Save scores to a file
-    output_file = os.path.join(args.input_folder, "scores.txt")
+    strip_hydrogens_from_receptors(receptor_files)
+    receptor_noH_files = [r.replace(".pdb", "-noH.pdb") for r in receptor_files]
+
+    receptor_map = {}
+    for rec in receptor_noH_files:
+        match = re.search(r"rec_final_(\d+)-noH\.pdb", os.path.basename(rec))
+        if match:
+            receptor_map[match.group(1)] = rec
+
+    ligand_map = {}
+    for lig in ligand_files:
+        match = re.search(r"rec_(\d+)_mol\d+\.sdf", os.path.basename(lig))
+        if match:
+            rec_index = match.group(1)
+            ligand_map.setdefault(rec_index, []).append(lig)
+
+    output_lines = []
+    all_scores = []  # To track all scored pairs
+
+    for rec_index, rec_path in receptor_map.items():
+        ligands = ligand_map.get(rec_index, [])
+        if not ligands:
+            continue
+
+        output_lines.append(f"\n=== Scores for {os.path.basename(rec_path)} ===\n")
+
+        for lig_path in sorted(ligands):
+            score = get_mdn_score(
+                [lig_path],
+                [rec_path],
+                model_mdn,
+                args.ckpt,
+                args.device,
+                dis_threshold=args.dis_threshold,
+            )[0]
+
+            output_lines.append(f"{os.path.basename(lig_path)}: {score:.4f}")
+            all_scores.append((lig_path, rec_path, score))
+
+    # Sort by score descending
+    top_scores = sorted(all_scores, key=lambda x: x[2], reverse=True)[:3]
+
+    # Write scores
+    output_file = os.path.join(args.input_folder, "scores_per_receptor.txt")
     with open(output_file, "w") as f:
-        for lig, score in scores.items():
-            f.write(f"{lig}: {score}\n")
-    print("Scores:", scores)
+        f.write("\n".join(output_lines))
 
+        f.write("\n\n=== Top 3 Overall Scoring Pairs ===\n")
+        for i, (lig, rec, score) in enumerate(top_scores, start=1):
+            f.write(
+                f"{i}. Ligand: {os.path.basename(lig)} | "
+                f"Receptor: {os.path.basename(rec)} | "
+                f"Score: {score:.4f}\n"
+            )
 
+    # Print top 3
+    print(f"\nScoring complete. Output saved to {output_file}")
+    print("\n=== Top 3 Overall Scoring Pairs ===")
+    for i, (lig, rec, score) in enumerate(top_scores, start=1):
+        print(
+            f"{i}. Ligand: {os.path.basename(lig)} | "
+            f"Receptor: {os.path.basename(rec)} | "
+            f"Score: {score:.4f}"
+        )
 if __name__ == "__main__":
     get_scores()

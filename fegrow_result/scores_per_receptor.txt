@@ -1,15 +1,15 @@
 
 === Scores for rec_final_1-noH.pdb ===
 
-rec_1_mol0.sdf: 46.6477
-rec_1_mol1.sdf: 41.8478
+rec_1_mol0.sdf: 46.6486
+rec_1_mol1.sdf: 41.8505
 
 === Scores for rec_final_2-noH.pdb ===
 
-rec_2_mol0.sdf: 40.9592
-rec_2_mol1.sdf: 38.6245
+rec_2_mol0.sdf: 40.9603
+rec_2_mol1.sdf: 38.6246
 
 === Top 3 Overall Scoring Pairs ===
-1. Ligand: rec_1_mol0.sdf | Receptor: rec_final_1-noH.pdb | Score: 46.6477
-2. Ligand: rec_1_mol1.sdf | Receptor: rec_final_1-noH.pdb | Score: 41.8478
-3. Ligand: rec_2_mol0.sdf | Receptor: rec_final_2-noH.pdb | Score: 40.9592
+1. Ligand: rec_1_mol0.sdf | Receptor: rec_final_1-noH.pdb | Score: 46.6486
+2. Ligand: rec_1_mol1.sdf | Receptor: rec_final_1-noH.pdb | Score: 41.8505
+3. Ligand: rec_2_mol0.sdf | Receptor: rec_final_2-noH.pdb | Score: 40.9603
