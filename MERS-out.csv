@@ -1,0 +1,3 @@
+,Smiles,Mol,score,h,Training,Success,enamine_searched,enamine_id
+0,C(Oc1c(c(c(N(C(c2c(c(c(c(Cl)c2[H])[H])[H])[H])([H])[H])C(=O)C(c2c(nc(c3c(c(c(c(c23)[H])[H])[H])[H])[H])[H])([H])[H])c(c1[H])[H])[H])[H])([H])([H])[H],<fegrow.package.RMol object at 0x77b5c02f2430>,6.01818,,True,True,False,
+1,C(N(C(=O)C(N1C([C@@]2(C(=O)N(c3c(nc(c4c(c(c(c(c34)[H])[H])[H])[H])[H])[H])C([C@@]2([N+]([H])([H])[H])[H])([H])[H])c2c(c(Cl)c(c(c2C1=O)[H])[H])[H])([H])[H])([H])[H])[H])([H])([H])[H],<fegrow.package.RMol object at 0x77b5e07c3e20>,5.63898,,True,True,False,
